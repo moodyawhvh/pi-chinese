@@ -1,28 +1,30 @@
-# Containerization
+> 🌐 本文档由 [earendil-works/pi](https://github.com/earendil-works/pi) 翻译,英文原版见原项目。
 
-Pi runs with all permissions by default, but in some cases, you will want to have more control over what directories Pi can write to and which accesses it has.
+# 容器化
 
-There are two general options. You can either
-1. run the whole `pi` process inside an isolated environment, or
-2. run `pi` on the host and route tool execution into an isolated environment.
+pi 默认以全部权限运行,但有些情况下你会希望更精确地控制 pi 可以写入哪些目录、拥有哪些访问权限。
 
-## Choose a pattern
+总体有两种方案:
+1. 把整个 `pi` 进程放进隔离环境中运行;或
+2. 在宿主机上运行 `pi`,把工具执行路由进隔离环境。
 
-| Pattern | What is isolated | Best for | Notes |
+## 选择模式
+
+| 模式 | 隔离对象 | 最适合 | 备注 |
 | --- | --- | --- | --- |
-| Gondolin extension | Built-in tools and `!` commands | Local micro-VM isolation while keeping auth on host | See [`examples/extensions/gondolin/`](../examples/extensions/gondolin/). |
-| Plain Docker | Whole `pi` process in a local container | Simple local isolation | Provider API keys enter the container. |
-| OpenShell | Whole `pi` process in a policy-controlled sandbox | Local or remote managed sandbox | Requires an OpenShell gateway |
-| Docker Sandboxes | Whole `pi` process in a managed sandbox | Local isolation with provider keys kept on the host | Requires Docker Sandboxes (`sbx`). |
+| Gondolin 扩展 | 内置工具和 `!` 命令 | 本地 micro-VM 隔离,同时把认证留在宿主机 | 见 [`examples/extensions/gondolin/`](../examples/extensions/gondolin/)。 |
+| 纯 Docker | 整个 `pi` 进程放进本地容器 | 简单的本地隔离 | provider API key 会进入容器。 |
+| OpenShell | 整个 `pi` 进程放进策略控制的沙箱 | 本地或远程托管沙箱 | 需要 OpenShell 网关 |
+| Docker Sandboxes | 整个 `pi` 进程放进托管沙箱 | 本地隔离,provider 密钥留在宿主机 | 需要 Docker Sandboxes(`sbx`)。 |
 
-Extensions run wherever the `pi` process runs. If you run host `pi` with a tool-routing extension, other custom extension tools still run on the host unless they also delegate their operations.
+扩展跟随 `pi` 进程所在位置运行。如果你在宿主机 pi 上使用工具路由扩展,其他自定义扩展工具仍在宿主机执行,除非它们自己也委托操作。
 
 ## Gondolin
 
-[Gondolin](https://github.com/earendil-works/gondolin) is a local Linux micro-VM.
-Use the [example extension](../examples/extensions/gondolin) when you want `pi` on the host but all built-in tools routed into the VM.
+[Gondolin](https://github.com/earendil-works/gondolin) 是一个本地 Linux micro-VM。
+当你想让 `pi` 跑在宿主机、但所有内置工具都路由进 VM 时,使用[示例扩展](../examples/extensions/gondolin)。
 
-Setup:
+安装:
 
 ```bash
 cp -R packages/coding-agent/examples/extensions/gondolin ~/.pi/agent/extensions/gondolin
@@ -30,22 +32,22 @@ cd ~/.pi/agent/extensions/gondolin
 npm install --ignore-scripts
 ```
 
-Run from the project you want mounted:
+在你想挂载的项目目录中运行:
 
 ```bash
 cd /path/to/project
 pi -e ~/.pi/agent/extensions/gondolin
 ```
 
-The extension mounts the host cwd at `/workspace` in the VM and overrides `read`, `write`, `edit`, `bash`, `grep`, `find`, and `ls`.
-User `!` commands are routed into the VM, as well.
-File changes under `/workspace` write through to the host.
+该扩展把宿主机 cwd 挂载为 VM 内的 `/workspace`,并覆盖 `read`、`write`、`edit`、`bash`、`grep`、`find`、`ls`。
+用户的 `!` 命令也会路由进 VM。
+`/workspace` 下的文件变更会直写回宿主机。
 
-Requirements: Node.js >= 23.6.0 for `@earendil-works/gondolin`, plus QEMU (requires installation through your package manager).
+要求:Node.js >= 23.6.0(用于 `@earendil-works/gondolin`),另需 QEMU(通过包管理器安装)。
 
-## Plain Docker
+## 纯 Docker
 
-Run the whole `pi` process in Docker when you want the simplest local container boundary.
+想要最简单的本地容器边界时,把整个 `pi` 进程跑在 Docker 里。
 
 `Dockerfile.pi`:
 
@@ -61,7 +63,7 @@ WORKDIR /workspace
 ENTRYPOINT ["pi"]
 ```
 
-Build and run:
+构建并运行:
 
 ```bash
 docker build -t pi-sandbox -f Dockerfile.pi .
@@ -73,56 +75,56 @@ docker run --rm -it \
   pi-sandbox
 ```
 
-The `-v "$PWD:/workspace"` mounts your current directory into the container at /workspace such that reads and writes in `/workspace` inside Docker directly affect your host files, like in the Gondolin example.
+`-v "$PWD:/workspace"` 把当前目录挂载进容器的 /workspace,这样 Docker 内 `/workspace` 的读写会直接影响宿主机文件,与 Gondolin 示例类似。
 
-Use a named volume for `/root/.pi/agent` if you want container-local settings and sessions. Mounting your host `~/.pi/agent` exposes host auth and session files to the container.
+如果想要容器私有的设置和会话,给 `/root/.pi/agent` 使用命名卷。直接挂载宿主机的 `~/.pi/agent` 会把宿主机的认证和会话文件暴露给容器。
 
 ## OpenShell
 
-Use [NVIDIA OpenShell](https://docs.nvidia.com/openshell/about/overview) when you want a policy-controlled sandbox with filesystem, process, network, credential, and inference controls.
-OpenShell can run sandboxes through a local gateway backed by Docker, Podman, or a VM runtime, or through a remote Kubernetes gateway.
+想要带文件系统、进程、网络、凭据和推理控制的策略化沙箱时,使用 [NVIDIA OpenShell](https://docs.nvidia.com/openshell/about/overview)。
+OpenShell 可以通过由 Docker、Podman 或 VM 运行时支撑的本地网关运行沙箱,也可以通过远程 Kubernetes 网关。
 
-Every sandbox requires an active gateway.
-Register and select one before creating a sandbox:
+每个沙箱都需要一个活动网关。
+创建沙箱前先注册并选择一个:
 
 ```bash
 openshell gateway add <gateway-url> --name <name>
 openshell gateway select <name>
 ```
 
-Launch `pi` inside an OpenShell sandbox:
+在 OpenShell 沙箱内启动 `pi`:
 
 ```bash
 openshell sandbox create --name pi-sandbox --from pi -- pi
 ```
 
-In this pattern, the whole `pi` process runs inside the sandbox.
-Built-in tools, `!` commands, and extension tools execute inside the OpenShell boundary.
+此模式下,整个 `pi` 进程运行在沙箱内。
+内置工具、`!` 命令和扩展工具都在 OpenShell 边界内执行。
 
-If the gateway is remote, project files are not bind-mounted from the host, meaning writes in the sandbox are not reflected on your machine.
-Clone the repository inside the sandbox or use OpenShell file transfer commands:
+如果网关是远程的,项目文件不会从宿主机 bind-mount,意味着沙箱内的写操作不会反映到你的机器上。
+在沙箱内 clone 仓库,或使用 OpenShell 文件传输命令:
 
 ```bash
 openshell sandbox upload pi-sandbox ./repo /workspace
 openshell sandbox download pi-sandbox /workspace/repo ./repo-out
 ```
 
-OpenShell providers can keep raw model API keys outside the sandbox.
-When inference routing is configured, code inside the sandbox can call `https://inference.local`, and the gateway injects the configured provider credentials upstream.
-Configure Pi to use the corresponding OpenAI-compatible or Anthropic-compatible endpoint if you want model traffic to use this route.
+OpenShell provider 可以把原始模型 API key 保留在沙箱之外。
+配置推理路由后,沙箱内的代码可以调用 `https://inference.local`,由网关在上游注入已配置的 provider 凭据。
+要让模型流量走这条路由,把 Pi 配置为对应的 OpenAI 兼容或 Anthropic 兼容 endpoint 即可。
 
 ## Docker Sandboxes
 
-[Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) is a managed sandbox runtime from Docker that runs the whole `pi` process inside a sandbox.
-It is one of the container boundaries [No Built-in Sandbox](security.md#no-built-in-sandbox) points to.
+[Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) 是 Docker 提供的托管沙箱运行时,把整个 `pi` 进程运行在沙箱内。
+它是[无内置沙箱](security.md#no-built-in-sandbox)一节所指的容器边界之一。
 
-Unlike the Plain Docker pattern above, the provider credential is not passed into the container.
-The sandbox receives a sentinel value instead, and the `sbx` proxy substitutes the real credential on egress to `api.anthropic.com`.
-Credentials are wired at creation time, so store yours on the host before you create the sandbox.
+与上面的纯 Docker 模式不同,provider 凭据不会传入容器。
+沙箱收到的是占位值,`sbx` 代理在对 `api.anthropic.com` 的出站请求上替换为真实凭据。
+凭据在创建时接线,因此创建沙箱前先把你的凭据存在宿主机上。
 
-For a Claude Pro/Max subscription, run `claude setup-token` on a machine with Claude Code, then store the result on the host.
-If an `anthropic` secret is already bound, remove it first: otherwise the proxy adds an `x-api-key` header alongside the Bearer token and Anthropic rejects the request.
-`sbx secret set-custom` reads the token from stdin, so it stays out of shell history.
+Claude Pro/Max 订阅用户,先在有 Claude Code 的机器上运行 `claude setup-token`,然后把结果存到宿主机。
+如果已绑定 `anthropic` secret,先移除它:否则代理会在 Bearer token 旁边附加 `x-api-key` 头,Anthropic 会拒绝请求。
+`sbx secret set-custom` 从 stdin 读取 token,因此不会留在 shell 历史里。
 
 ```bash
 sbx secret rm anthropic
@@ -133,24 +135,24 @@ sbx secret set-custom \
   --placeholder 'sk-ant-oat01-{rand}'
 ```
 
-The sandbox gets an OAuth-shaped placeholder, not the real token, and the proxy swaps it on egress to that host; `ANTHROPIC_OAUTH_TOKEN` is a variable pi already reads and prefers over an API key, so no extra pi configuration is needed.
+沙箱拿到的是 OAuth 形状的占位符而非真实 token,代理会在出站到该主机时替换;`ANTHROPIC_OAUTH_TOKEN` 是 pi 已读取并优先于 API key 使用的变量,因此无需额外配置 pi。
 
-For an API key, store it with `sbx secret set anthropic` instead. The kit wires it the same way, as a sentinel the proxy substitutes on egress.
+API key 则改用 `sbx secret set anthropic` 存储。工具包以同样方式接线,作为代理在出站时替换的占位值。
 
-With the credential stored, launch `pi` from the project you want mounted:
+凭据存好后,在你想挂载的项目目录中启动 `pi`:
 
 ```bash
 sbx run --kit "docker.io/sbx/pi-kit:latest" pi
 ```
 
-The kit pre-bakes `pi` into its image, so the sandbox starts without installing anything, and the current directory is the sandbox workspace.
+工具包已把 `pi` 预置进镜像,沙箱启动无需安装任何东西,当前目录即沙箱工作区。
 
-Do not authenticate from inside the sandbox: `/login` there writes a real token into the container and defeats the proxy model.
+不要在沙箱内做认证:在沙箱里执行 `/login` 会把真实 token 写进容器,破坏代理模型。
 
-Scripted use works the same way:
+脚本化使用方式相同:
 
 ```bash
 sbx exec <sandbox-name> -- pi -p "list the failing tests"
 ```
 
-See the [kit documentation](https://github.com/docker/sbx-kits-contrib/tree/main/pi) for the full credential matrix, troubleshooting, and pinning.
+完整的凭据矩阵、故障排查和版本固定见[工具包文档](https://github.com/docker/sbx-kits-contrib/tree/main/pi)。
