@@ -1,16 +1,18 @@
-# JSON Event Stream Mode
+> 🌐 本文档由 [earendil-works/pi](https://github.com/earendil-works/pi) 翻译,英文原版见原项目。
+
+# JSON 事件流模式
 
 ```bash
 pi --mode json "Your prompt"
 ```
 
-Outputs all session events as JSON lines to stdout. Useful for integrating pi into other tools or custom UIs.
+把所有会话事件以 JSON 行的形式输出到 stdout。适合把 pi 集成到其他工具或自定义 UI 中。
 
-## Event Types
+## 事件类型
 
-Wire events use `JsonAgentSessionEvent`. It matches
+线上事件使用 `JsonAgentSessionEvent`。它与
 [`AgentSessionEvent`](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/agent-session.ts)
-except that streaming message updates omit cumulative snapshots:
+一致,区别是流式消息更新省略了累计快照:
 
 ```typescript
 type WithoutPartial<T> = T extends { partial: unknown } ? Omit<T, "partial"> : T;
@@ -28,9 +30,9 @@ type JsonAgentSessionEvent =
     };
 ```
 
-`queue_update` emits the full pending steering and follow-up queues whenever they change. `compaction_start` and `compaction_end` cover both manual and automatic compaction.
+`queue_update` 在待处理的 steering 与 follow-up 队列每次变化时输出完整队列。`compaction_start` 和 `compaction_end` 同时覆盖手动与自动压缩。
 
-Other base events come from
+其他基础事件来自
 [`AgentEvent`](https://github.com/earendil-works/pi/blob/main/packages/agent/src/types.ts):
 
 ```typescript
@@ -51,28 +53,28 @@ type AgentEvent =
   | { type: "tool_execution_end"; toolCallId: string; toolName: string; result: any; isError: boolean };
 ```
 
-## Message Types
+## 消息类型
 
-Base messages from [`packages/ai/src/types.ts`](https://github.com/earendil-works/pi/blob/main/packages/ai/src/types.ts#L134):
-- `UserMessage` (line 134)
-- `AssistantMessage` (line 140)
-- `ToolResultMessage` (line 152)
+基础消息来自 [`packages/ai/src/types.ts`](https://github.com/earendil-works/pi/blob/main/packages/ai/src/types.ts#L134):
+- `UserMessage`(第 134 行)
+- `AssistantMessage`(第 140 行)
+- `ToolResultMessage`(第 152 行)
 
-Extended messages from [`packages/coding-agent/src/core/messages.ts`](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/messages.ts#L29):
-- `BashExecutionMessage` (line 29)
-- `CustomMessage` (line 46)
-- `BranchSummaryMessage` (line 55)
-- `CompactionSummaryMessage` (line 62)
+扩展消息来自 [`packages/coding-agent/src/core/messages.ts`](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/messages.ts#L29):
+- `BashExecutionMessage`(第 29 行)
+- `CustomMessage`(第 46 行)
+- `BranchSummaryMessage`(第 55 行)
+- `CompactionSummaryMessage`(第 62 行)
 
-## Output Format
+## 输出格式
 
-Each line is a JSON object. The first line is the session header:
+每行是一个 JSON 对象。第一行是会话头:
 
 ```json
 {"type":"session","version":3,"id":"uuid","timestamp":"...","cwd":"/path"}
 ```
 
-Followed by events as they occur:
+之后按事件发生顺序输出:
 
 ```json
 {"type":"agent_start"}
@@ -84,14 +86,13 @@ Followed by events as they occur:
 {"type":"agent_end","messages":[...]}
 ```
 
-`message_update` records are delta-only. They omit both the cumulative `message` field and
-`assistantMessageEvent.partial` to keep stream size linear. The top-level `usage` field contains
-the latest cumulative provider-reported usage and may remain zero when a provider only reports
-usage at completion. Use `contentIndex` and `delta` to assemble live text, thinking, or tool-call
-arguments if needed. A `toolcall_start` event also includes the constant-sized `id` and `toolName`
-fields. `message_end` contains the final authoritative message.
+`message_update` 记录只包含增量。为保持流大小线性增长,它同时省略累计的 `message` 字段和
+`assistantMessageEvent.partial`。顶层的 `usage` 字段是 provider 上报的最新累计用量,
+当 provider 只在完成时上报用量时,它可能一直为零。如需组装实时文本、思考或工具调用参数,
+请使用 `contentIndex` 和 `delta`。`toolcall_start` 事件还附带大小恒定的 `id` 和 `toolName`
+字段。`message_end` 包含最终权威消息。
 
-## Example
+## 示例
 
 ```bash
 pi --mode json "List files" 2>/dev/null | jq -c 'select(.type == "message_end")'
