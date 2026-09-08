@@ -1,8 +1,10 @@
-# Development
+> 🌐 本文档由 [earendil-works/pi](https://github.com/earendil-works/pi) 翻译,英文原版见原项目。
 
-See [AGENTS.md](https://github.com/earendil-works/pi/blob/main/AGENTS.md) for additional guidelines.
+# 开发
 
-## Setup
+更多准则见 [AGENTS.md](https://github.com/earendil-works/pi/blob/main/AGENTS.md)。
+
+## 环境搭建
 
 ```bash
 git clone https://github.com/earendil-works/pi
@@ -11,30 +13,30 @@ npm install
 npm run build
 ```
 
-Run from source:
+从源码运行:
 
 ```bash
 /path/to/pi/pi-test.sh
 ```
 
-The script can be run from any directory. Pi keeps the caller's current working directory.
+该脚本可以在任意目录下运行。pi 会保持在调用者当前的工作目录。
 
-### Experimental remote harness
+### 实验性远程 harness
 
-The remote harness server/client integration is development-only. Run it from the repository with:
+远程 harness 的 server/client 集成仅用于开发。在仓库根目录运行:
 
 ```bash
 PI_EXPERIMENTAL=1 ./pi-test.sh server
 PI_EXPERIMENTAL=1 ./pi-test.sh client
 ```
 
-`PI_SERVER_DIR` overrides the server profile and socket directory (default: `~/.pi/server`). `PI_SERVER_ID` selects the logical server ID when `--server-id` is omitted.
+`PI_SERVER_DIR` 覆盖 server 的 profile 和 socket 目录(默认:`~/.pi/server`)。省略 `--server-id` 时,`PI_SERVER_ID` 用于选择逻辑 server ID。
 
-The `client` and `experimental/plugin` package subpaths resolve only under the `source` condition in a checkout. Their implementations and the server/client commands are excluded from npm packages and standalone binaries. `pi-client`, `pi-protocol`, and `pi-server` are development dependencies of coding-agent, not runtime dependencies. The local SDK and stdio RPC API are unchanged.
+`client` 和 `experimental/plugin` 包子路径仅在 checkout 中以 `source` 条件解析。它们的实现以及 server/client 命令都不包含在 npm 包和独立二进制中。`pi-client`、`pi-protocol` 和 `pi-server` 是 coding-agent 的开发依赖,不是运行时依赖。本地 SDK 和 stdio RPC API 保持不变。
 
-## Forking / Rebranding
+## Fork / 换牌
 
-Configure via `package.json`:
+通过 `package.json` 配置:
 
 ```json
 {
@@ -45,46 +47,46 @@ Configure via `package.json`:
 }
 ```
 
-Change `name`, `configDir`, and `bin` field for your fork. Affects CLI banner, config paths, and environment variable names.
+为你的 fork 修改 `name`、`configDir` 和 `bin` 字段。这会影响 CLI 横幅、配置路径和环境变量名称。
 
-## Path Resolution
+## 路径解析
 
-Three execution modes: npm install, standalone binary, tsx from source.
+三种执行模式:npm 安装、独立二进制、源码 tsx。
 
-**Always use `src/config.ts`** for package assets:
+**包资源一律使用 `src/config.ts`**:
 
 ```typescript
 import { getPackageDir, getThemeDir } from "./config.js";
 ```
 
-Never use `__dirname` directly for package assets.
+绝不要直接对包资源使用 `__dirname`。
 
-## Debug Command
+## 调试命令
 
-`/debug` (hidden) writes to `~/.pi/agent/pi-debug.log`:
-- Rendered TUI lines with ANSI codes
-- Last messages sent to the LLM
+`/debug`(隐藏命令)写入 `~/.pi/agent/pi-debug.log`:
+- 带 ANSI 码的渲染后 TUI 行
+- 最近发送给 LLM 的消息
 
-## Testing
+## 测试
 
 ```bash
-./test.sh                         # Run non-LLM tests (no API keys needed)
-npm test                          # Run all tests
-npm test -- test/specific.test.ts # Run specific test
+./test.sh                         # 运行非 LLM 测试(无需 API key)
+npm test                          # 运行全部测试
+npm test -- test/specific.test.ts # 运行指定测试
 ```
 
-### Published package smoke test
+### 已发布包冒烟测试
 
-After building, run `npm run check:package-install`. It packs the public packages and installs only coding-agent as a direct dependency in a temporary directory outside the repository. Local tarball overrides select declared transitive dependencies without installing development-only packages. The check verifies SDK imports and CLI startup without credentials or model requests.
+构建完成后,运行 `npm run check:package-install`。它会打包公开包,并在仓库外的临时目录中仅以直接依赖方式安装 coding-agent。本地 tarball 覆盖会选择已声明的传递依赖,而不安装仅用于开发的包。该检查在不带凭据、不发起模型请求的情况下验证 SDK 导入和 CLI 启动。
 
-`npm run check` also checks runtime dependency declarations and rejects excluded development sources pulled into a package's build through imports.
+`npm run check` 还会检查运行时依赖声明,并拒绝通过 import 被拉进包构建的排除开发源码。
 
-## Project Structure
+## 项目结构
 
 ```
 packages/
-  ai/           # LLM provider abstraction
-  agent/        # Agent loop and message types  
-  tui/          # Terminal UI components
-  coding-agent/ # CLI and interactive mode
+  ai/           # LLM provider 抽象
+  agent/        # Agent 循环与消息类型  
+  tui/          # 终端 UI 组件
+  coding-agent/ # CLI 与交互模式
 ```
